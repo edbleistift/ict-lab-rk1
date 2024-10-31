@@ -960,3 +960,81 @@ dag.py  new_file.py
 ## СРО: Установите и настройте виртуальные машины с помощью VirtualBox или VMware. Подготовьте отчет по созданию и настройке гипервизора, сетевого окружения и настройки доступа к виртуальным машинам.
 
 ## СРОП: Настройте Docker-контейнеры для развертывания веб-сервиса. Включите в отчет подробное описание процесса создания Dockerfile, сборки контейнера и проверки его работоспособности на реальном сервере.
+
+На работе сталкивался и работал с Docker, и писал для себя гайд по установке (гайд для Debian, но установка с Ubuntu практически идентична), поэтому просто прикреплю ту инструкцию.
+
+# Установка Docker на Debian
+
+Если вы ищете простой и быстрый способ установки Docker на Debian, используйте эту инструкцию. Здесь описан процесс установки и использования Docker на Debian версии 9.
+
+## Что такое Docker
+
+Docker – это программа для упрощения разработки и управления приложениями с помощью контейнеров. Контейнеризация позволяет запускать, масштабировать и перемещать приложения без изменений кода.
+
+### Преимущества Docker:
+- Работает на Linux, Windows и MacOS
+- Позволяет запускать проекты на виртуальном web-сервере
+- Можно запускать до тысячи контейнеров на одном хосте
+
+## Установка Docker на Debian
+
+Следуйте шагам ниже для установки Docker:
+
+1. Обновите пакеты:
+    ```sh
+    sudo apt update
+    ```
+
+2. Установите необходимые пакеты:
+    ```sh
+    sudo apt install apt-transport-https ca-certificates curl software-properties-common
+    ```
+
+3. Добавьте GPG-ключ репозитория Docker:
+    ```sh
+    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    ```
+
+4. Добавьте репозиторий Docker:
+    ```sh
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    ```
+
+5. Обновите пакеты снова:
+    ```sh
+    sudo apt update
+    ```
+
+6. Переключитесь в репозиторий Docker:
+    ```sh
+    apt-cache policy docker-ce
+    ```
+
+7. Установите Docker:
+    ```sh
+    sudo apt install docker-ce
+    ```
+
+8. Проверьте работоспособность Docker:
+    ```sh
+    sudo systemctl status docker
+    ```
+
+9. Добавьте пользователя в группу Docker:
+    ```sh
+    sudo usermod -aG docker ${USER}
+    ```
+
+10. Перезапустите сессию:
+    ```sh
+    su - ${USER}
+    ```
+
+11. Введите пароль пользователя при запросе.
+
+## Использование Docker
+
+Синтаксис команд Docker:
+```sh
+docker [OPTIONS] COMMAND [ARGUMENTS]
+
