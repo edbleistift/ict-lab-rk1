@@ -961,7 +961,7 @@ dag.py  new_file.py
 
 ## СРОП: Настройте Docker-контейнеры для развертывания веб-сервиса. Включите в отчет подробное описание процесса создания Dockerfile, сборки контейнера и проверки его работоспособности на реальном сервере.
 
-На работе сталкивался и работал с Docker, и писал для себя гайд по установке (гайд для Debian, но установка с Ubuntu практически идентична), поэтому просто прикреплю ту инструкцию.
+На работе сталкивался и работал с Docker, и писал для себя гайд по установке (гайд для Debian, но установка с Ubuntu практически идентична), поэтому просто прикреплю ту инструкцию. Также ниже прикрепил пример реализации и настройки контейнера airflow, для последующего подключения к БД на MySQL.
 
 # Установка Docker на Debian
 
@@ -981,52 +981,52 @@ Docker – это программа для упрощения разработ�
 Следуйте шагам ниже для установки Docker:
 
 1. Обновите пакеты:
-    ```sh
+    ```
     sudo apt update
     ```
 
 2. Установите необходимые пакеты:
-    ```sh
+    ```
     sudo apt install apt-transport-https ca-certificates curl software-properties-common
     ```
 
 3. Добавьте GPG-ключ репозитория Docker:
-    ```sh
+    ```
     curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
     ```
 
 4. Добавьте репозиторий Docker:
-    ```sh
+    ```
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     ```
 
 5. Обновите пакеты снова:
-    ```sh
+    ```
     sudo apt update
     ```
 
 6. Переключитесь в репозиторий Docker:
-    ```sh
+    ```
     apt-cache policy docker-ce
     ```
 
 7. Установите Docker:
-    ```sh
+    ```
     sudo apt install docker-ce
     ```
 
 8. Проверьте работоспособность Docker:
-    ```sh
+    ````
     sudo systemctl status docker
     ```
 
 9. Добавьте пользователя в группу Docker:
-    ```sh
+    ```
     sudo usermod -aG docker ${USER}
     ```
 
 10. Перезапустите сессию:
-    ```sh
+    ```
     su - ${USER}
     ```
 
@@ -1035,6 +1035,91 @@ Docker – это программа для упрощения разработ�
 ## Использование Docker
 
 Синтаксис команд Docker:
-```sh
+```
 docker [OPTIONS] COMMAND [ARGUMENTS]
+```
+
+
+
+# Начнем с создания `Dockerfile` и `start.sh` файла, а затем создадим Docker образ и запустим его.
+
+1. **Создайте `Dockerfile`:**
+
+```
+FROM apache/airflow:2.5.1-python3.9
+
+COPY requirements.txt /requirements.txt
+
+RUN pip install --no-cache-dir -r /requirements.txt
+
+USER root
+
+RUN apt-get update && apt-get install -y \
+    wget
+
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+USER airflow
+ENTRYPOINT ["/bin/bash","/start.sh"]
+```
+
+2. **Создайте `start.sh` файл:**
+
+```
+#!/bin/bash
+airflow standalone
+```
+
+3. **Создайте `requirements.txt` файл (если его еще нет):**
+
+```
+pandas
+mysql-connector-python
+```
+
+4. **Постройте Docker образ:**
+
+```
+docker build . -t airflow-local
+```
+
+5. **Запустите Docker контейнер:**
+
+```
+docker run -p 8080:8080 -v /home/admin/Downloads/airflow_project/dags:/opt/airflow/dags -d airflow-local
+```
+
+5.1 **Скопировать файл airflow.cfg из контейнера в директорию на хосте для редктирования:**
+```
+docker cp <container_id>:/opt/airflow/airflow.cfg /home/admin/Downloads/airflow.cfg
+```
+
+5.2 **Откройте файл `airflow.cfg`, который находится в директории `/home/admin/Downloads/airflow.cfg`, и добавьте или измените параметры подключения к MySQL базе данных:**
+
+```
+[database]
+sql_alchemy_conn = mysql+mysqlconnector://pdm:Aa123456#@10.207.22.29:3306/ods
+```
+
+5.3 **Скопировать файл airflow.cfg из директории на хосте в контейнер:**
+```
+docker cp /home/admin/Downloads/airflow.cfg <container_id>:/opt/airflow/airflow.cfg
+```
+
+5.4 **Проверить наличие зменение выполнив:**
+```
+docker exec -it <container_id> /bin/bash
+cat airflow.cfg
+```
+
+6. **Перезапустите контейнер:**
+
+```
+docker restart <container_id>
+```
+
+7. **Инициализируйте БД:**
+```
+airflow db init
+```
 
