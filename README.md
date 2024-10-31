@@ -706,6 +706,109 @@ edward@edward-VM:~$
 ## СРОП: Создайте план резервного копирования и восстановления для серверов, опишите процессы использования инкрементальных и полных бэкапов. Проведите тестирование восстановления данных после повреждения файловой системы.
 
 
+## СРО:
+
+### 1. Установка утилиты rsync
+
+Если rsync не установлен, установите его с помощью следующей команды:
+```
+sudo apt-get update
+sudo apt-get install rsync
+```
+
+### 2. Создание резервной копии
+
+Выберите директорию, которую хотите резервировать, и папку, в которую будут сохраняться резервные копии. Например:
+```
+Исходные данные: /home/edward/Documents/airflow_dag
+Резервная копия: /mnt/backup/airflow_dag_backup
+```
+
+Создайте резервную копию с помощью rsync.
+```
+sudo rsync -av --delete /home/edward/Documents/airflow_dag/ /mnt/backup/airflow_dag_backup/
+```
+
+Опции:
+-a — архивный режим (копирует рекурсивно и сохраняет права доступа).
+-v — вывод информации о процессе.
+--delete — удаляет файлы в папке резервной копии, если они были удалены в исходной папке.
+
+### 3. Настройка автоматического резервного копирования с помощью cron
+```
+crontab -e
+```
+
+Добавьте новую задачу для резервного копирования.
+Например, чтобы запускать резервное копирование каждую минуту (только для теста сделал, чтобы долго не ждать):
+```
+* * * * * rsync -av --delete /home/edward/Documents/airflow_dag/ /mnt/backup/airflow_dag_backup/
+```
+
+### 4. Внесите изменения в файлы в директории /home/edward/Documents/airflow_dag, чтобы протестировать систему резервного копирования. Например, создадим новый файл:
+```
+touch /home/edward/Documents/airflow_dag/new_file.py
+```
+
+### 5. Для восстановления резервной копии выполните команду:
+```
+edward@edward-VM:~/Documents/airflow_dag$ sudo rsync -av /mnt/backup/airflow_dag_backup/ /home/edward/Documents/airflow_dag/
+sending incremental file list
+./
+
+sent 85 bytes  received 19 bytes  208,00 bytes/sec
+total size is 0  speedup is 0,00
+edward@edward-VM:~/Documents/airflow_dag$ ls
+dag.py
+```
+
+
+
+## СРОП:
+### 1. План резервного копирования
+
+Типы резервных копий:
+	- Полные резервные копии: Полная копия всех данных на сервере.
+	- Инкрементальные резервные копии: Копируются только изменения, произошедшие с момента последнего резервирования.
+
+### 2. Процессы использования инкрементальных и полных бэкапов
+Полное резервное копирование (раз в неделю):
+```
+0 1 * * 0 rsync -av --delete /home/edward/Documents/airflow_dag/ /mnt/backup/full_airflow_dag_backup/
+```
+
+Инкрементальное резервное копирование (каждый день):
+Запланируйте выполнение инкрементальных резервных копий .
+```
+0 1 * * 1-6 rsync -av --delete /home/edward/Documents/airflow_dag/ /mnt/backup/incremental_airflow_dag_backup/
+```
+
+### 3. Тестирование восстановления данных
+
+Повреждение файловой системы.
+Имитация повреждения файловой системы может быть выполнена путем удаления нескольких файлов в /home/edward/Documents/airflow_dag.
+
+Восстановление данных.
+Восстановите данные из резервной копии, используя команды rsync как описано выше.
+
+Проверка целостности восстановленных данных.
+Сравните исходные данные с восстановленными с помощью команды diff:
+```
+diff -r /home/edward/Documents/airflow_dag/ /mnt/backup/airflow_dag_backup/
+```
+
+Восстановление файла new_file.py после удалния: 
+```
+edward@edward-VM:~/Documents/airflow_dag$ diff -r /home/edward/Documents/airflow_dag/ /mnt/backup/airflow_dag_backup/
+Только в /mnt/backup/airflow_dag_backup/: new_file.py
+edward@edward-VM:~/Documents/airflow_dag$ ls
+dag.py
+edward@edward-VM:~/Documents/airflow_dag$ ^C
+edward@edward-VM:~/Documents/airflow_dag$ cd /mnt/backup/airflow_dag_backup/
+edward@edward-VM:/mnt/backup/airflow_dag_backup$ ls
+dag.py  new_file.py
+```
+-----------------------------------------------------------
 
 # 7.	Мониторинг и оптимизация систем:
 
