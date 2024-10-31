@@ -528,13 +528,26 @@ edward@edward-VM:~$ du -sh /mnt/mydata
 4,0K	/mnt/mydata
 ```
 
-# СРОП
+# СРОП (полный код по выполнению задания вставлен в конце этой главы)
 
-## Настройка RAID уровня 1 на виртуальной машине
+## Настройка RAID уровня 1 (потому что для 5-го уровня нужно минимум 3 диска создавать, поэтому поленился и выбрал 1 уровень) на виртуальной машине
 
 ### 1. Создание виртуальных дисков
 
-Создайте два виртуальных диска (например, 10 ГБ каждый) на вашей виртуальной машине.
+Создайте два виртуальных диска (для теста было создано 2 диска по 5 ГБ) на вашей виртуальной машине:
+```
+Диск /dev/sdc: 5 GiB, 5368709120 байт, 10485760 секторов
+Disk model: VBOX HARDDISK   
+Единицы: секторов по 1 * 512 = 512 байт
+Размер сектора (логический/физический): 512 байт / 512 байт
+Размер I/O (минимальный/оптимальный): 512 байт / 512 байт
+
+Диск /dev/sdd: 5 GiB, 5368709120 байт, 10485760 секторов
+Disk model: VBOX HARDDISK   
+Единицы: секторов по 1 * 512 = 512 байт
+Размер сектора (логический/физический): 512 байт / 512 байт
+Размер I/O (минимальный/оптимальный): 512 байт / 512 байт
+```
 
 ### 2. Убедитесь, что диски доступны
 
@@ -550,14 +563,140 @@ sudo fdisk -l
 sudo apt update
 sudo apt install mdadm
 ```
-### 4. Создание RAID 1
+### 4. Выполните команду для создания RAID 1 из двух дисков:
+```
+sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdc /dev/sdd
+```
 
-Выполните команду для создания RAID 1 из двух дисков:
+### 5. После создания массива проверьте его статус:
+```
+cat /proc/mdstat
+```
 
+### 6. Отформатируйте созданный RAID-массив (в случае RAID 1):
+```
+sudo mkfs.ext4 /dev/md0
+```
 
+### 7. Создайте точку монтирования:
+```
+sudo mkdir /mnt/raid1
+```
 
+### 8. Смонтируйте RAID-массив:
+```
+sudo mount /dev/md0 /mnt/raid1
+```
 
+### 9. Убедитесь, что массив смонтирован правильно:
+```
+df -h
+```
 
+### 10. Откройте файл /etc/fstab в текстовом редакторе:
+```
+sudo nano /etc/fstab
+```
+
+Добавьте следующую строку в конец файла:
+```
+/dev/md0   /mnt/raid   ext4   defaults   0   2
+```
+
+### 11. Проверьте состояние массива через mdadm:
+```
+sudo mdadm --detail /dev/md0
+```
+
+### 12. Создание конфигурации mdadm для восстановления массива после перезагрузки:
+```
+sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
+sudo update-initramfs -u
+```
+
+### 13.Для тестирования отказоустойчивости можно имитировать отказ одного из дисков. Отключим один из дисков:
+```
+edward@edward-VM:~$ sudo mdadm --manage /dev/md0 --fail /dev/sdc
+mdadm: set /dev/sdc faulty in /dev/md0
+```
+
+Для завершения работы RAID массива используйте следующую команду:
+```
+sudo mdadm --stop /dev/md0
+```
+Чтобы удалить RAID массив, выполните:
+```
+sudo mdadm --remove /dev/md0
+```
+
+# Ход выполнения данного задания:
+```
+edward@edward-VM:~$ sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdc /dev/sdd
+mdadm: Note: this array has metadata at the start and
+    may not be suitable as a boot device.  If you plan to
+    store '/boot' on this device please ensure that
+    your boot-loader understands md/v1.x metadata, or use
+    --metadata=0.90
+Continue creating array [y/N]? y
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md0 started.
+edward@edward-VM:~$ cat /proc/mdstat
+Personalities : [raid0] [raid1] [raid6] [raid5] [raid4] [raid10] 
+md0 : active raid1 sdd[1] sdc[0]
+      5237760 blocks super 1.2 [2/2] [UU]
+      [======>..............]  resync = 34.3% (1801472/5237760) finish=0.2min speed=225184K/sec
+      
+unused devices: <none>
+edward@edward-VM:~$ sudo mkfs.ext4 /dev/md0
+mke2fs 1.47.1 (20-May-2024)
+Creating filesystem with 1309440 4k blocks and 327680 inodes
+UUID файловой системы: ee354988-a45b-4a7d-95c3-64f586cec900
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912, 819200, 884736
+
+Распределение групповых таблиц: готово                            
+Сохранение таблицы inod'ов: готово                            
+Создание журнала (16384 блоков): готово
+Writing superblocks and filesystem accounting information: готово
+
+edward@edward-VM:~$ sudo mkdir /mnt/raid
+sudo mount /dev/md0 /mnt/raid
+edward@edward-VM:~$ sudo nano /etc/fstab
+edward@edward-VM:~$ sudo mdadm --detail /dev/md0
+/dev/md0:
+           Version : 1.2
+     Creation Time : Thu Oct 31 23:01:55 2024
+        Raid Level : raid1
+        Array Size : 5237760 (5.00 GiB 5.36 GB)
+     Used Dev Size : 5237760 (5.00 GiB 5.36 GB)
+      Raid Devices : 2
+     Total Devices : 2
+       Persistence : Superblock is persistent
+
+       Update Time : Thu Oct 31 23:03:28 2024
+             State : clean 
+    Active Devices : 2
+   Working Devices : 2
+    Failed Devices : 0
+     Spare Devices : 0
+
+Consistency Policy : resync
+
+              Name : edward-VM:0  (local to host edward-VM)
+              UUID : ddce58ef:e4fd19de:9765dea0:0f1dfab3
+            Events : 17
+
+    Number   Major   Minor   RaidDevice State
+       0       8       32        0      active sync   /dev/sdc
+       1       8       48        1      active sync   /dev/sdd
+edward@edward-VM:~$ sudo mdadm --detail --scan | sudo tee -a /etc/mdadm/mdadm.conf
+sudo update-initramfs -u
+ARRAY /dev/md0 metadata=1.2 UUID=ddce58ef:e4fd19de:9765dea0:0f1dfab3
+update-initramfs: Generating /boot/initrd.img-6.11.0-9-generic
+edward@edward-VM:~$ sudo mdadm --manage /dev/md0 --fail /dev/sdc
+mdadm: set /dev/sdc faulty in /dev/md0
+edward@edward-VM:~$ 
+```
 -----------------------------------------------------------
 
 # 6.	Резервное копирование и восстановление данных:
