@@ -345,11 +345,116 @@ sudo iptables-save | sudo tee /etc/iptables/rules.v4
 
 ## СРОП: Постройте сеть в Packet Tracer, реализующую статическую и динамическую маршрутизацию между несколькими узлами. Проверьте корректность маршрутов с помощью команд show ip route и предоставьте результаты.
 
+## СРО
 
+# 1. Установка Cisco Packet Tracer
 
+Cisco Packet Tracer — это симулятор сетевых решений, который предоставляет пользователям возможность создавать и настраивать виртуальные сети. Следуйте приведенной ниже инструкции, чтобы установить Cisco Packet Tracer на Ubuntu.
 
+1. Перейдите на [официальный сайт Cisco Networking Academy](https://www.netacad.com/).
+2. Если у вас еще нет учетной записи, создайте ее, нажав на "Join NetAcad".
+3. Войдите в свою учетную запись.
+4. Перейдите в раздел "Resources" (Ресурсы).
+5. Выберите "Download Packet Tracer" (Скачать Packet Tracer).
+6. Выберите версию для Linux и нажмите "Download".
 
+Перед установкой Packet Tracer вам необходимо установить некоторые зависимости. Откройте терминал и выполните следующую команду:
 
+```
+sudo apt-get install libpng16-16 libqt5webkit5 libqt5xml5 libqt5network5
+```
+
+Перейдите в директорию, куда был загружен файл:
+```
+root@edward-VM:/home/edward/Downloads#
+```
+
+Сделайте файл установщика исполняемым (замените PacketTracer_*.run на имя загруженного файла):
+```
+root@edward-VM:/home/edward/Downloads# chmod +x PacketTracer_*.run
+```
+
+Запустите установщик:
+```
+root@edward-VM:/home/edward/Downloads# ./PacketTracer_*.run
+```
+
+Запуск Cisco Packet Tracer
+```
+root@edward-VM:/home/edward/Downloads# packettracer
+```
+
+### Протокол RIP
+
+RIP (Routing Information Protocol) — это протокол динамической маршрутизации, который использует алгоритм векторной длины для обмена маршрутной информацией между маршрутизаторами. Основные характеристики:
+
+- Максимальное количество хопов: 15
+- Обновление маршрутов каждые 30 секунд
+- Использует UDP для передачи данных
+
+#### Настройка RIP в Cisco Packet Tracer
+
+1. Откройте Cisco Packet Tracer и создайте новую сеть.
+2. Добавьте маршрутизаторы и соедините их с помощью кабелей.
+3. Настройте маршрутизаторы, используя команды CLI:
+
+```
+Router> enable
+Router# configure terminal
+Router(config)# router rip
+Router(config-router)# version 2
+Router(config-router)# network 192.168.1.0
+```
+
+Настройка OSPF в Cisco Packet Tracer
+В той же сети добавьте маршрутизаторы.
+Настройте маршрутизаторы, используя следующие команды CLI:
+```
+Router> enable
+Router# configure terminal
+Router(config)# router ospf 1  # замените номер процесса на нужный
+Router(config-router)# network 192.168.1.0 0.0.0.255 area 0  # замените на вашу сеть
+```
+
+Вывод для RIP
+Команда show ip route для проверки таблицы маршрутизации:
+```
+Router# show ip route
+Routing Table - 192.168.1.0/24
+     C    192.168.1.0/24 is directly connected, FastEthernet0/0
+     R    192.168.2.0/24 [120/1] via 192.168.1.2, 00:00:10, FastEthernet0/0
+     R    192.168.3.0/24 [120/1] via 192.168.1.3, 00:00:10, FastEthernet0/0
+```
+
+Вывод для OSPF
+Команда show ip route для OSPF:
+```
+Router# show ip route
+Routing Table - 192.168.1.0/24
+     C    192.168.1.0/24 is directly connected, FastEthernet0/0
+     O    192.168.2.0/24 [110/20] via 192.168.1.2, 00:00:05, FastEthernet0/0
+     O    192.168.3.0/24 [110/20] via 192.168.1.3, 00:00:05, FastEthernet0/0
+```
+
+Вывод для статической маршрутизации:
+```
+Router# show ip route
+Routing Table - 192.168.1.0/24
+     C    192.168.1.0/24 is directly connected, FastEthernet0/0
+     S    10.0.0.0/24 [1/0] via 192.168.1.1, 00:00:15
+```
+
+Для проверки состояния интерфейсов:
+```
+show ip interface brief
+```
+```
+Router# show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+FastEthernet0/0       192.168.1.1     YES manual up                    up
+FastEthernet0/1       192.168.2.1     YES manual up                    up
+FastEthernet0/2       unassigned      YES unset  administratively down down
+```
 -----------------------------------------------------------
 
 # 4.	Управление пользователями и правами доступа:
